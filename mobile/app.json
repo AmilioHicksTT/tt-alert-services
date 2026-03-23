@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "T&T Alert + Services",
+    "slug": "tt-alert-services",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#C8102E"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "tt.gov.alert.services",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Your location is used to show alerts and reports for your area.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Background location enables area-specific alert notifications."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#C8102E"
+      },
+      "package": "tt.gov.alert.services",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "CAMERA",
+        "READ_MEDIA_IMAGES"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#C8102E",
+          "sounds": ["./assets/alert.wav"],
+          "androidMode": "default",
+          "androidCollapsedTitle": "T&T Alert"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to attach images to reports."
+        }
+      ]
+    ],
+    "scheme": "tt-alert"
+  }
+}
