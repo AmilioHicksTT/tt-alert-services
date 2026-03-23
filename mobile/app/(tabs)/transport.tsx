@@ -27,10 +27,18 @@ export default function TransportScreen() {
   const [crowdNote, setCrowdNote] = useState('');
   const [crowdDelay, setCrowdDelay] = useState('');
 
+  const [error, setError] = useState(false);
+
   async function fetchRoutes() {
-    const params = filter !== 'all' ? { type: filter } : {};
-    const { data } = await transportApi.routes(params);
-    setRoutes(data);
+    setError(false);
+    try {
+      const params = filter !== 'all' ? { type: filter } : {};
+      const { data } = await transportApi.routes(params);
+      setRoutes(data);
+    } catch (e) {
+      console.error('Failed to load routes', e);
+      if (!routes.length) setError(true);
+    }
   }
 
   useEffect(() => {
@@ -77,8 +85,17 @@ export default function TransportScreen() {
         ))}
       </View>
 
-      {loading ? (
-        <View style={styles.center}><ActivityIndicator size="large" color={Colors.primary} /></View>
+      {loading && !routes.length ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading routes...</Text>
+        </View>
+      ) : error && !routes.length ? (
+        <View style={styles.center}>
+          <MaterialCommunityIcons name="wifi-off" size={48} color={Colors.textMuted} />
+          <Text style={styles.errorTitle}>Couldn't connect</Text>
+          <Text style={styles.errorSub}>Pull down to retry when ready.</Text>
+        </View>
       ) : (
         <FlatList
           data={filtered}
@@ -164,7 +181,10 @@ export default function TransportScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  loadingText: { color: Colors.textSecondary, fontSize: 14, marginTop: 12 },
+  errorTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginTop: 16 },
+  errorSub: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', marginTop: 8 },
   filterBar: { flexDirection: 'row', padding: 12, gap: 8, backgroundColor: Colors.surface, borderBottomWidth: 1, borderBottomColor: Colors.border },
   filterBtn: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 16, backgroundColor: Colors.background },
   filterBtnActive: { backgroundColor: Colors.primary },

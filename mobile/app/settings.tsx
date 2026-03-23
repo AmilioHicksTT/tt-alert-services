@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useStore } from '../store';
@@ -39,21 +40,23 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
 
         {/* Avatar + name */}
-        <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
-          <Text style={styles.displayName}>{displayName}</Text>
-          {user?.phone && user.display_name && (
-            <Text style={styles.phone}>{user.phone}</Text>
-          )}
-          {district && (
-            <View style={styles.districtBadge}>
-              <MaterialCommunityIcons name="map-marker" size={14} color={Colors.primary} />
-              <Text style={styles.districtText}>{district.name}</Text>
+        <LinearGradient colors={['#C8102E', '#9B0D23']} style={styles.profileGradient}>
+          <View style={styles.profileCard}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials}</Text>
             </View>
-          )}
-        </View>
+            <Text style={styles.displayName}>{displayName}</Text>
+            {user?.phone && user.display_name && (
+              <Text style={styles.phone}>{user.phone}</Text>
+            )}
+            {district && (
+              <View style={styles.districtBadge}>
+                <MaterialCommunityIcons name="map-marker" size={14} color={Colors.primary} />
+                <Text style={styles.districtText}>{district.name}</Text>
+              </View>
+            )}
+          </View>
+        </LinearGradient>
 
         {/* Settings rows */}
         <View style={styles.section}>
@@ -65,6 +68,24 @@ export default function SettingsScreen() {
             value={district?.name || 'Not set'}
             onPress={() => router.push('/onboarding')}
           />
+          <SettingsRow
+            icon="bell-outline"
+            label="Notification Preferences"
+            value=""
+            onPress={() => {}}
+          />
+          <SettingsRow
+            icon="shield-lock-outline"
+            label="Privacy Policy"
+            value=""
+            onPress={() => {}}
+          />
+          <SettingsRow
+            icon="star-outline"
+            label="Rate this App"
+            value=""
+            onPress={() => {}}
+          />
         </View>
 
         <View style={styles.section}>
@@ -73,7 +94,7 @@ export default function SettingsScreen() {
           <SettingsRow
             icon="information-outline"
             label="Version"
-            value="1.0.0 (Demo)"
+            value="1.0.0"
           />
           <SettingsRow
             icon="flag-outline"
@@ -87,6 +108,8 @@ export default function SettingsScreen() {
           <MaterialCommunityIcons name="logout" size={20} color={Colors.critical} />
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
+
+        <Text style={styles.footerText}>Built with love for Trinidad & Tobago</Text>
 
       </ScrollView>
     </SafeAreaView>
@@ -121,26 +144,27 @@ function SettingsRow({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scroll: { padding: 20, paddingBottom: 40 },
-  profileCard: {
-    backgroundColor: Colors.surface,
+  profileGradient: {
     borderRadius: 16,
+    padding: 2,
+    marginBottom: 24,
+  },
+  profileCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
     padding: 24,
     alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
+    borderWidth: 3,
+    borderColor: '#fff',
   },
   avatarText: { color: '#fff', fontSize: 24, fontWeight: '800' },
   displayName: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
@@ -189,4 +213,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   logoutText: { color: Colors.critical, fontWeight: '700', fontSize: 15 },
+  footerText: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 24,
+  },
 });

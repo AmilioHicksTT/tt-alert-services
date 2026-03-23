@@ -2,7 +2,7 @@
  * WASA Scraper — Water and Sewerage Authority
  * Source: https://www.wasa.gov.tt
  *
- * Scrapes outage notices and supply disruption advisories.
+ * Scrapes active disruptions and public advisory notices.
  */
 
 const axios = require('axios');
@@ -10,9 +10,9 @@ const cheerio = require('cheerio');
 const { createAlert } = require('../services/alertService');
 const { getDB } = require('../config/database');
 
-const WASA_NOTICES_URL = 'https://www.wasa.gov.tt/notices';
+const WASA_DISRUPTIONS_URL = 'https://www.wasa.gov.tt/WASA_Media_ActiveDisruptions.php';
+const WASA_ADVISORIES_URL = 'https://www.wasa.gov.tt/WASA_Media_PublicAdvisoryNotices.html';
 
-// District name -> code mapping for normalising WASA text
 const DISTRICT_MAP = {
   'port of spain': 'POS',
   'san fernando': 'SFO',
@@ -21,28 +21,84 @@ const DISTRICT_MAP = {
   'point fortin': 'PTF',
   'diego martin': 'DGO',
   tunapuna: 'TUP',
+  piarco: 'TUP',
   'san juan': 'SJU',
+  laventille: 'SJU',
   penal: 'PED',
+  debe: 'PED',
   siparia: 'SIP',
   'rio claro': 'RCL',
   mayaro: 'RCL',
   'sangre grande': 'SNG',
   couva: 'COU',
+  tabaquite: 'COU',
+  'princes town': 'PTF2',
   tobago: 'TOB',
+  scarborough: 'TOB',
+  'north oropouche': 'COU',
+  caroni: 'CHG',
+  'el socorro': 'SJU',
+  valsayn: 'SJU',
+  curepe: 'TUP',
+  'st augustine': 'TUP',
 };
 
 async function scrapeWASA() {
   try {
-    const { data: html } = await axios.get(WASA_NOTICES_URL, { timeout: 10000 });
-    const $ = cheerio.load(html);
-
     const notices = [];
-    $('.notice, .advisory, .views-row, article').each((_, el) => {
-      const title = $(el).find('h2, h3, .title').text().trim();
-      const body = $(el).find('p, .body').first().text().trim();
-      if (title) notices.push({ title, body });
-    });
 
+    // 1. Scrape active disruptions page
+    try {
+      const { data: html } = await axios.get(WASA_DISRUPTIONS_URL, { timeout: 15000 });
+      const $ = cheerio.load(html);
+
+      // Look for disruption content blocks
+      $('div, p, li, span').each((_, el) => {
+        const text = $(el).text().trim();
+        if (text.length > 30 && text.length < 500 &&
+            /\b(disruption|outage|interrupt|no water|water supply|customers|affected|restoration|service)\b/i.test(text)) {
+          const existing = notices.find((n) => n.body === text);
+          if (!existing) {
+            notices.push({ title: 'Water Service Disruption', body: text });
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('[WASA] Disruptions page error:', e.message);
+    }
+
+    // 2. Scrape public advisory notices (media releases table)
+    try {
+      const { data: html } = await axios.get(WASA_ADVISORIES_URL, { timeout: 15000 });
+      const $ = cheerio.load(html);
+
+      $('table tr').each((_, row) => {
+        const cells = $(row).find('td');
+        if (cells.length >= 2) {
+          const date = cells.eq(0).text().trim();
+          const headline = cells.eq(1).text().trim();
+
+          if (headline && /disruption|outage|interrupt|water supply|burst|leak/i.test(headline)) {
+            notices.push({ title: headline, body: `${headline}. Date: ${date}. Source: WASA Media Release.` });
+          }
+        }
+      });
+
+      // Check for PDF advisory links
+      $('a[href*=".pdf"]').each((_, el) => {
+        const text = $(el).text().trim();
+        if (text && /disruption|outage|service/i.test(text)) {
+          const existing = notices.find((n) => n.title === text);
+          if (!existing) {
+            notices.push({ title: text, body: `${text}. See WASA website for full advisory.` });
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('[WASA] Advisories page error:', e.message);
+    }
+
+    console.log(`[WASA] Found ${notices.length} notices`);
     const db = getDB();
 
     for (const notice of notices) {
@@ -58,7 +114,7 @@ async function scrapeWASA() {
         type: 'water_outage',
         severity: 'warning',
         title: notice.title,
-        body: notice.body || 'Water supply disruption. Check WASA website for details.',
+        body: notice.body || 'Water supply disruption reported. Check WASA website for details.',
         source: 'WASA',
         district_code,
         expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),

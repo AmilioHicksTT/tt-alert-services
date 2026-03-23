@@ -1,22 +1,41 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, RefreshControl,
-  ScrollView, TouchableOpacity, ActivityIndicator,
+  ScrollView, TouchableOpacity, ActivityIndicator, Platform,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useStore } from '../../store';
 import { areaApi } from '../../services/api';
-import { Colors, AlertTypeColors, AlertTypeIcons } from '../../constants/colors';
+import { Colors, AlertTypeColors, AlertTypeIcons, cardShadow } from '../../constants/colors';
 import { getDistrictByCode } from '../../constants/districts';
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function StatBubble({ count, label, icon }: { count: number; label: string; icon: string }) {
+  return (
+    <View style={styles.statBubble}>
+      <MaterialCommunityIcons name={icon as any} size={16} color="rgba(255,255,255,0.8)" />
+      <Text style={styles.statCount}>{count}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
 
 export default function DashboardScreen() {
   const router = useRouter();
   const { user, location, summary, setSummary, alerts, setAlerts } = useStore();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(false);
 
   const district = user?.district_code ? getDistrictByCode(user.district_code) : null;
 
@@ -27,12 +46,14 @@ export default function DashboardScreen() {
       ? { lat: location.lat, lng: location.lng }
       : null;
     if (!params) return;
+    setError(false);
     try {
       const { data } = await areaApi.summary(params);
       setSummary(data);
       setAlerts(data.alerts);
     } catch (e) {
       console.error('Failed to load summary', e);
+      if (!summary) setError(true);
     }
   }, [user?.district_code, location]);
 
@@ -51,6 +72,24 @@ export default function DashboardScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading your area...</Text>
+      </View>
+    );
+  }
+
+  if (error && !summary) {
+    return (
+      <View style={styles.center}>
+        <MaterialCommunityIcons name="wifi-off" size={48} color={Colors.textMuted} />
+        <Text style={styles.errorTitle}>Couldn't connect</Text>
+        <Text style={styles.errorSub}>The server may be waking up. This usually takes a few seconds.</Text>
+        <TouchableOpacity
+          style={styles.retryBtn}
+          onPress={() => { setLoading(true); fetchSummary().finally(() => setLoading(false)); }}
+        >
+          <MaterialCommunityIcons name="refresh" size={18} color="#fff" />
+          <Text style={styles.retryText}>Try Again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -64,18 +103,32 @@ export default function DashboardScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
         contentContainerStyle={styles.scroll}
       >
-        {/* Area header */}
-        <View style={styles.areaHeader}>
-          <MaterialCommunityIcons name="map-marker" size={18} color={Colors.primary} />
-          <Text style={styles.areaName}>
-            {district?.name || summary?.district?.name || 'Your Area'}
-          </Text>
+        {/* Hero card */}
+        <LinearGradient
+          colors={['#C8102E', '#9B0D23']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroCard}
+        >
+          <View style={styles.heroTop}>
+            <View>
+              <Text style={styles.greeting}>{getGreeting()}</Text>
+              <Text style={styles.heroDistrict}>
+                {district?.name || summary?.district?.name || 'Your Area'}
+              </Text>
+            </View>
+            <View style={styles.heroIconCircle}>
+              <MaterialCommunityIcons name="shield-check" size={28} color="#fff" />
+            </View>
+          </View>
           {summary && (
-            <Text style={styles.generatedAt}>
-              Updated {new Date(summary.generated_at).toLocaleTimeString('en-TT', { hour: '2-digit', minute: '2-digit' })}
-            </Text>
+            <View style={styles.statsRow}>
+              <StatBubble count={summary.alerts?.length || 0} label="Alerts" icon="bell-alert" />
+              <StatBubble count={summary.reports?.length || 0} label="Reports" icon="flag" />
+              <StatBubble count={summary.transport_disruptions?.length || 0} label="Transport" icon="bus" />
+            </View>
           )}
-        </View>
+        </LinearGradient>
 
         {/* Critical alerts banner */}
         {criticalAlerts.map((alert) => (
@@ -95,11 +148,18 @@ export default function DashboardScreen() {
 
         {/* No disruptions state */}
         {!criticalAlerts.length && !otherAlerts.length && !summary?.reports?.length && !summary?.transport_disruptions?.length && (
-          <View style={styles.allClearCard}>
-            <MaterialCommunityIcons name="check-circle" size={40} color="#16A34A" />
+          <LinearGradient
+            colors={['#ECFDF5', '#D1FAE5']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.allClearCard}
+          >
+            <View style={styles.allClearIconCircle}>
+              <MaterialCommunityIcons name="check-circle" size={36} color="#16A34A" />
+            </View>
             <Text style={styles.allClearTitle}>All Clear</Text>
             <Text style={styles.allClearSub}>No active disruptions in your area right now.</Text>
-          </View>
+          </LinearGradient>
         )}
 
         {/* Active alerts */}
@@ -173,7 +233,7 @@ function Section({ title, icon, children }: { title: string; icon: string; child
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <MaterialCommunityIcons name={icon as any} size={18} color={Colors.textSecondary} />
+        <MaterialCommunityIcons name={icon as any} size={18} color={Colors.primary} />
         <Text style={styles.sectionTitle}>{title}</Text>
       </View>
       {children}
@@ -197,35 +257,129 @@ function formatReportType(type: string): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  scroll: { padding: 16, paddingBottom: 32 },
-  areaHeader: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16,
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  loadingText: { color: Colors.textSecondary, fontSize: 14, marginTop: 12 },
+  errorTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginTop: 16 },
+  errorSub: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  retryBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: Colors.primary, borderRadius: 12,
+    paddingHorizontal: 24, paddingVertical: 12, marginTop: 20,
   },
-  areaName: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary, flex: 1 },
-  generatedAt: { fontSize: 11, color: Colors.textMuted },
+  retryText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  scroll: { padding: 16, paddingBottom: 32 },
+
+  // Hero card
+  heroCard: {
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    ...cardShadow,
+  },
+  heroTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  greeting: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+  },
+  heroDistrict: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#fff',
+    marginTop: 2,
+  },
+  heroIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statBubble: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12,
+    padding: 10,
+    alignItems: 'center',
+    gap: 2,
+  },
+  statCount: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  statLabel: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  // Critical
   criticalCard: {
-    backgroundColor: Colors.critical, borderRadius: 12, padding: 16, marginBottom: 12,
+    backgroundColor: Colors.critical,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    ...cardShadow,
   },
   criticalHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
   criticalBadge: { color: '#fff', fontWeight: '800', fontSize: 11, letterSpacing: 1 },
   criticalTitle: { color: '#fff', fontWeight: '700', fontSize: 16, marginBottom: 4 },
   criticalBody: { color: 'rgba(255,255,255,0.85)', fontSize: 13 },
+
+  // All clear
   allClearCard: {
-    backgroundColor: '#F0FDF4', borderRadius: 12, padding: 24,
-    alignItems: 'center', marginBottom: 16,
+    borderRadius: 16,
+    padding: 28,
+    alignItems: 'center',
+    marginBottom: 16,
+    ...cardShadow,
   },
-  allClearTitle: { fontSize: 18, fontWeight: '700', color: '#16A34A', marginTop: 8 },
-  allClearSub: { fontSize: 13, color: '#4B7A5A', marginTop: 4, textAlign: 'center' },
+  allClearIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(22,163,74,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  allClearTitle: { fontSize: 20, fontWeight: '800', color: '#16A34A', marginTop: 8 },
+  allClearSub: { fontSize: 14, color: '#4B7A5A', marginTop: 4, textAlign: 'center' },
+
+  // Sections
   section: { marginBottom: 20 },
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10,
   },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  // Alert cards
   alertCard: {
-    backgroundColor: Colors.surface, borderRadius: 10, marginBottom: 8,
-    flexDirection: 'row', overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    ...cardShadow,
   },
   alertTypeBar: { width: 4 },
   alertContent: { flex: 1, padding: 12 },
@@ -233,16 +387,31 @@ const styles = StyleSheet.create({
   alertTitle: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary, flex: 1 },
   alertBody: { fontSize: 13, color: Colors.textSecondary, marginBottom: 4 },
   alertMeta: { fontSize: 11, color: Colors.textMuted },
+
+  // Transport
   transportCard: {
-    backgroundColor: Colors.surface, borderRadius: 10, padding: 12, marginBottom: 8,
-    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    ...cardShadow,
   },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   transportName: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
   transportStatus: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+
+  // Reports
   reportCard: {
-    backgroundColor: Colors.surface, borderRadius: 10, padding: 12, marginBottom: 8,
-    flexDirection: 'row', gap: 10,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    gap: 10,
+    ...cardShadow,
   },
   reportContent: { flex: 1 },
   reportType: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },

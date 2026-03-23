@@ -24,13 +24,17 @@ export default function MapScreen() {
 
   useEffect(() => {
     async function load() {
-      const params = location ? { lat: location.lat, lng: location.lng, radius: 100 } : {};
-      const [alertsRes, reportsRes] = await Promise.allSettled([
-        alertsApi.list(params),
-        reportsApi.list(params),
-      ]);
-      if (alertsRes.status === 'fulfilled') setAlerts(alertsRes.value.data);
-      if (reportsRes.status === 'fulfilled') setReports(reportsRes.value.data);
+      try {
+        const params = location ? { lat: location.lat, lng: location.lng, radius: 100 } : {};
+        const [alertsRes, reportsRes] = await Promise.allSettled([
+          alertsApi.list(params),
+          reportsApi.list(params),
+        ]);
+        if (alertsRes.status === 'fulfilled') setAlerts(alertsRes.value.data);
+        if (reportsRes.status === 'fulfilled') setReports(reportsRes.value.data);
+      } catch (e) {
+        console.warn('Map data load failed:', e);
+      }
     }
     load();
   }, []);

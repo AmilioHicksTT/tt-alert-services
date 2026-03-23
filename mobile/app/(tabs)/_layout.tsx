@@ -1,6 +1,6 @@
 import { Tabs, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, View, Text, StyleSheet, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../../constants/colors';
 import { useStore } from '../../store';
@@ -31,17 +31,48 @@ export default function TabsLayout() {
         },
       }}
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textSecondary,
+        tabBarActiveTintColor: Colors.primaryLight,
+        tabBarInactiveTintColor: Colors.textMuted,
         tabBarStyle: {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
-          paddingBottom: 4,
-          height: 60,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          paddingBottom: 8,
+          paddingTop: 4,
+          height: 64,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -3 },
+              shadowOpacity: 0.08,
+              shadowRadius: 6,
+            },
+            android: {
+              elevation: 8,
+            },
+          }),
         },
-        headerStyle: { backgroundColor: Colors.primary },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+          letterSpacing: 0.2,
+        },
+        headerStyle: {
+          backgroundColor: Colors.primary,
+          ...Platform.select({
+            ios: {
+              shadowColor: Colors.primaryDark,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 6,
+            },
+          }),
+        },
         headerTintColor: '#fff',
-        headerTitleStyle: { fontWeight: '700' },
+        headerTitleStyle: { fontWeight: '800', fontSize: 17, letterSpacing: 0.3 },
       }}
     >
       <Tabs.Screen
@@ -90,10 +121,29 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   badge: {
-    position: 'absolute', top: -4, right: -8,
-    backgroundColor: Colors.critical, borderRadius: 8,
-    minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 2,
+    position: 'absolute',
+    top: -5,
+    right: -10,
+    backgroundColor: Colors.critical,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 2,
+    borderColor: Colors.surface,
+    ...Platform.select({
+      ios: {
+        shadowColor: Colors.critical,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.4,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
 });

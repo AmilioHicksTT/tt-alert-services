@@ -74,7 +74,7 @@ export default function WelcomeScreen() {
   }
 
   return (
-    <LinearGradient colors={['#C8102E', '#8B0000']} style={styles.container}>
+    <LinearGradient colors={['#1A1A2E', '#C8102E']} style={styles.container}>
       <SafeAreaView style={styles.safe}>
         {/* Skip button */}
         <TouchableOpacity style={styles.skipBtn} onPress={goToOnboarding}>
@@ -101,7 +101,7 @@ export default function WelcomeScreen() {
           renderItem={({ item }) => (
             <View style={styles.slide}>
               <View style={styles.card}>
-                <View style={[styles.iconCircle, { backgroundColor: item.iconColor + '18' }]}>
+                <View style={[styles.iconCircle, { backgroundColor: 'rgba(255,255,255,0.12)' }]}>
                   <MaterialCommunityIcons name={item.icon as any} size={48} color={item.iconColor} />
                 </View>
                 <Text style={styles.slideTitle}>{item.title}</Text>
@@ -129,7 +129,7 @@ export default function WelcomeScreen() {
           <MaterialCommunityIcons
             name={activeIndex < SLIDES.length - 1 ? 'arrow-right' : 'check'}
             size={20}
-            color="#fff"
+            color="#C8102E"
           />
         </TouchableOpacity>
       </SafeAreaView>
@@ -161,14 +161,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
   },
   iconCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
@@ -203,11 +203,9 @@ const styles = StyleSheet.create({
     gap: 8,
     marginHorizontal: 24,
     marginBottom: 32,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: '#fff',
     borderRadius: 14,
     paddingVertical: 16,
   },
-  ctaText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  ctaText: { color: '#C8102E', fontSize: 17, fontWeight: '700' },
 });

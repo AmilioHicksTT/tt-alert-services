@@ -69,12 +69,13 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <LinearGradient colors={['#C8102E', '#8B0000']} style={styles.container}>
+    <LinearGradient colors={['#1A1A2E', '#C8102E']} style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.inner}>
         <View style={styles.header}>
           <Text style={styles.flag}>🇹🇹</Text>
           <Text style={styles.title}>T&T Alert + Services</Text>
           <Text style={styles.subtitle}>Your national civic utility app</Text>
+          <Text style={styles.tagline}>Stay informed. Stay safe.</Text>
         </View>
 
         {step === 'phone' && (
@@ -153,14 +154,20 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   inner: { flex: 1, justifyContent: 'center', padding: 24 },
   header: { alignItems: 'center', marginBottom: 32 },
-  flag: { fontSize: 48, marginBottom: 8 },
+  flag: { fontSize: 56, marginBottom: 8 },
   title: { fontSize: 24, fontWeight: '800', color: '#fff', textAlign: 'center' },
   subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
+  tagline: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 6, fontStyle: 'italic' },
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 24,
     maxHeight: '70%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
   },
   cardTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
   cardSub: { fontSize: 13, color: Colors.textSecondary, marginBottom: 16 },
@@ -189,8 +196,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   button: {
-    backgroundColor: Colors.primary, borderRadius: 10,
-    padding: 14, alignItems: 'center', marginTop: 8,
+    backgroundColor: Colors.primary, borderRadius: 14,
+    padding: 16, alignItems: 'center', marginTop: 8,
   },
   buttonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   link: { alignItems: 'center', marginTop: 12 },

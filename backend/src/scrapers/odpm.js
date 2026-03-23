@@ -1,9 +1,8 @@
 /**
  * ODPM Scraper — Office of Disaster Preparedness and Management
- * Source: https://www.odpm.gov.tt
+ * Source: https://odpm.gov.tt
  *
- * Scrapes active advisories and flood warnings published on the ODPM website.
- * When ODPM provides an official API, replace the scraping logic with API calls.
+ * Scrapes active advisories and emergency notices from the ODPM WordPress site.
  */
 
 const axios = require('axios');
@@ -11,29 +10,41 @@ const cheerio = require('cheerio');
 const { createAlert } = require('../services/alertService');
 const { getDB } = require('../config/database');
 
-const ODPM_URL = 'https://www.odpm.gov.tt/node/116'; // Alerts & Warnings page
+// ODPM migrated from Drupal to WordPress — scrape the homepage and search for alerts
+const ODPM_URL = 'https://odpm.gov.tt';
 
 async function scrapeODPM() {
   try {
-    const { data: html } = await axios.get(ODPM_URL, { timeout: 10000 });
+    const { data: html } = await axios.get(ODPM_URL, { timeout: 15000 });
     const $ = cheerio.load(html);
 
     const alerts = [];
-    // ODPM lists advisories in .views-row blocks — adjust selector to actual page structure
-    $('.views-row, .advisory-item, article').each((_, el) => {
-      const title = $(el).find('h2, h3, .views-field-title').text().trim();
-      const body = $(el).find('.views-field-body, .field-body, p').first().text().trim();
-      const dateText = $(el).find('.date-display-single, time').text().trim();
 
-      if (title && body) {
-        alerts.push({ title, body, date: dateText });
+    // WordPress site — look for post entries, articles, alert banners
+    $('article, .et_pb_post, .post, .entry, .alert-banner, .advisory').each((_, el) => {
+      const title = $(el).find('h1, h2, h3, h4, .entry-title, .post-title').first().text().trim();
+      const body = $(el).find('p, .entry-content, .post-content, .excerpt').first().text().trim();
+
+      if (title && title.length > 10 && isRelevantAlert(title + ' ' + body)) {
+        alerts.push({ title, body });
       }
     });
 
+    // Also check for any linked PDFs or advisories
+    $('a[href*=".pdf"], a[href*="advisory"], a[href*="warning"], a[href*="alert"]').each((_, el) => {
+      const text = $(el).text().trim();
+      if (text && text.length > 10 && isRelevantAlert(text)) {
+        const existing = alerts.find((a) => a.title === text);
+        if (!existing) {
+          alerts.push({ title: text, body: `See ODPM website for full advisory: ${$(el).attr('href') || ''}` });
+        }
+      }
+    });
+
+    console.log(`[ODPM] Found ${alerts.length} alerts`);
     const db = getDB();
 
     for (const item of alerts) {
-      // Deduplicate: skip if an alert with same title from ODPM already exists today
       const { rows } = await db.query(
         `SELECT id FROM alerts WHERE source = 'ODPM' AND title = $1 AND created_at > NOW() - INTERVAL '24 hours'`,
         [item.title]
@@ -47,7 +58,7 @@ async function scrapeODPM() {
         type,
         severity,
         title: item.title,
-        body: item.body,
+        body: item.body || 'Advisory issued by the Office of Disaster Preparedness and Management.',
         source: 'ODPM',
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       });
@@ -59,19 +70,23 @@ async function scrapeODPM() {
   }
 }
 
+function isRelevantAlert(text) {
+  return /\b(flood|warning|advisory|alert|hurricane|storm|landslide|earthquake|tsunami|evacuation|emergency|closure|road|weather|rain)\b/i.test(text);
+}
+
 function inferAlertType(title) {
   const t = title.toLowerCase();
   if (t.includes('flood')) return 'flood';
   if (t.includes('road') || t.includes('closure')) return 'road_closure';
-  if (t.includes('weather') || t.includes('tropical') || t.includes('hurricane')) return 'weather';
+  if (t.includes('weather') || t.includes('tropical') || t.includes('hurricane') || t.includes('rain') || t.includes('storm')) return 'weather';
   if (t.includes('landslide')) return 'landslide';
   return 'emergency';
 }
 
 function inferSeverity(title) {
   const t = title.toLowerCase();
-  if (t.includes('critical') || t.includes('emergency') || t.includes('hurricane')) return 'critical';
-  if (t.includes('warning') || t.includes('flood watch')) return 'warning';
+  if (t.includes('critical') || t.includes('emergency') || t.includes('hurricane') || t.includes('tsunami')) return 'critical';
+  if (t.includes('warning') || t.includes('flood watch') || t.includes('tropical storm')) return 'warning';
   return 'info';
 }
 

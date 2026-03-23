@@ -68,45 +68,58 @@ export default function RootLayout() {
       return;
     }
     (async () => {
-      const coords = await getCurrentLocation();
-      if (coords) {
-        setLocation(coords);
-        const params = user.district_code
-          ? { district: user.district_code }
-          : { lat: coords.lat, lng: coords.lng };
-        const { data } = await areaApi.summary(params);
-        setSummary(data);
-      }
+      try {
+        const coords = await getCurrentLocation();
+        if (coords) {
+          setLocation(coords);
+          const params = user.district_code
+            ? { district: user.district_code }
+            : { lat: coords.lat, lng: coords.lng };
+          const { data } = await areaApi.summary(params);
+          setSummary(data);
+        }
 
-      if (user.district_code) subscribeToArea(user.district_code);
-      await registerForPushNotifications();
+        if (user.district_code) subscribeToArea(user.district_code);
+        await registerForPushNotifications();
+      } catch (e) {
+        console.warn('Failed to load initial data:', e);
+      }
     })();
   }, [user?.id]);
 
   // Real-time WebSocket push to store
   const { addAlert, addReport } = useStore();
   useEffect(() => {
-    const { getSocket } = require('../services/socket');
-    const socket = getSocket();
-    if (!socket) return;
-    socket.on('alert:new', addAlert);
-    socket.on('report:new', addReport);
-    return () => {
-      socket.off('alert:new', addAlert);
-      socket.off('report:new', addReport);
-    };
+    try {
+      const { getSocket } = require('../services/socket');
+      const socket = getSocket();
+      if (!socket) return;
+      socket.on('alert:new', addAlert);
+      socket.on('report:new', addReport);
+      return () => {
+        socket.off('alert:new', addAlert);
+        socket.off('report:new', addReport);
+      };
+    } catch (e) {
+      console.warn('Socket setup failed:', e);
+    }
   }, [addAlert, addReport]);
 
   useEffect(() => {
-    return useNotificationListeners(
-      (notification) => {
-        console.log('Notification received:', notification);
-      },
-      (response) => {
-        const data = response.notification.request.content.data;
-        if (data?.alertId) router.push(`/alert/${data.alertId}`);
-      }
-    );
+    try {
+      return useNotificationListeners(
+        (notification) => {
+          console.log('Notification received:', notification);
+        },
+        (response) => {
+          const data = response.notification.request.content.data;
+          if (data?.alertId) router.push(`/alert/${data.alertId}`);
+        }
+      );
+    } catch (e) {
+      console.warn('Notification listeners setup failed:', e);
+      return () => {};
+    }
   }, []);
 
   return (

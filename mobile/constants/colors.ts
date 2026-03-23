@@ -1,14 +1,21 @@
 export const Colors = {
   // T&T national colours
-  primary: '#C8102E',     // Trinidad red
-  primaryDark: '#8B0000',
-  accent: '#000000',      // black
-  gold: '#FFD700',        // from national coat of arms
+  primary: '#C8102E',
+  primaryDark: '#9B0D23',
+  primaryLight: '#E8384F',
+  accent: '#1A1A2E',
+  gold: '#F5A623',
+
+  // Gradients (for LinearGradient)
+  gradientPrimary: ['#C8102E', '#9B0D23'] as const,
+  gradientDark: ['#1A1A2E', '#16213E'] as const,
+  gradientSunrise: ['#C8102E', '#F5A623'] as const,
 
   // Severity
-  critical: '#C8102E',
+  critical: '#DC2626',
   warning: '#F59E0B',
   info: '#3B82F6',
+  success: '#16A34A',
 
   // Alert types
   flood: '#1D4ED8',
@@ -19,22 +26,31 @@ export const Colors = {
   emergency: '#DC2626',
 
   // UI
-  background: '#F8F9FA',
+  background: '#F5F5F7',
   surface: '#FFFFFF',
-  border: '#E5E7EB',
-  textPrimary: '#111827',
-  textSecondary: '#6B7280',
-  textMuted: '#9CA3AF',
+  surfaceElevated: '#FFFFFF',
+  border: '#E8E8ED',
+  textPrimary: '#1C1C1E',
+  textSecondary: '#636366',
+  textMuted: '#AEAEB2',
 
   // Dark mode
   dark: {
-    background: '#0F0F0F',
-    surface: '#1A1A1A',
-    border: '#2D2D2D',
-    textPrimary: '#F9FAFB',
-    textSecondary: '#9CA3AF',
+    background: '#000000',
+    surface: '#1C1C1E',
+    border: '#38383A',
+    textPrimary: '#F5F5F7',
+    textSecondary: '#AEAEB2',
   },
 };
+
+export const cardShadow = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.08,
+  shadowRadius: 8,
+  elevation: 3,
+} as const;
 
 export const AlertTypeColors: Record<string, string> = {
   flood: Colors.flood,
