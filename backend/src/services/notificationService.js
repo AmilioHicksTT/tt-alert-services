@@ -19,6 +19,7 @@ async function sendAreaNotification(districtCode, { title, body, data = {} }) {
     if (!tokens.length) return;
 
     const messaging = getMessaging();
+    if (!messaging) return;
 
     // FCM multicast — send in batches of 500
     for (let i = 0; i < tokens.length; i += 500) {
@@ -49,6 +50,7 @@ async function sendAreaNotification(districtCode, { title, body, data = {} }) {
 async function sendDirectNotification(fcmToken, { title, body, data = {} }) {
   try {
     const messaging = getMessaging();
+    if (!messaging) return;
     await messaging.send({
       token: fcmToken,
       notification: { title, body },

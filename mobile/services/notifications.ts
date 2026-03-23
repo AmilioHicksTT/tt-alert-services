@@ -61,7 +61,8 @@ export async function registerForPushNotifications(): Promise<string | null> {
     });
   }
 
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
+  // Use native FCM/APNs token (not Expo token) — backend sends via Firebase Admin SDK
+  const token = (await Notifications.getDevicePushTokenAsync()).data;
 
   try {
     await authApi.updateProfile({ fcm_token: token });
