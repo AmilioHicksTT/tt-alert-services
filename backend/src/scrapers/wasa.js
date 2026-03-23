@@ -52,11 +52,12 @@ async function scrapeWASA() {
       const { data: html } = await axios.get(WASA_DISRUPTIONS_URL, { timeout: 15000 });
       const $ = cheerio.load(html);
 
-      // Look for disruption content blocks
-      $('div, p, li, span').each((_, el) => {
+      // Look for disruption content blocks (skip nav/header/footer boilerplate)
+      $('div.row p, div.row li, div.card, div.col-md-4, div.col-md-6, div.col-lg-4').each((_, el) => {
         const text = $(el).text().trim();
-        if (text.length > 30 && text.length < 500 &&
-            /\b(disruption|outage|interrupt|no water|water supply|customers|affected|restoration|service)\b/i.test(text)) {
+        if (text.length > 40 && text.length < 500 &&
+            /\b(disruption|outage|interrupt|no water|water supply|customers|affected|restoration)\b/i.test(text) &&
+            !/^\s*Active Disruptions\s*$/i.test(text)) {
           const existing = notices.find((n) => n.body === text);
           if (!existing) {
             notices.push({ title: 'Water Service Disruption', body: text });
