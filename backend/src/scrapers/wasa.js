@@ -73,11 +73,17 @@ async function scrapeWASA() {
       const { data: html } = await axios.get(WASA_ADVISORIES_URL, { timeout: 15000 });
       const $ = cheerio.load(html);
 
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
       $('table tr').each((_, row) => {
         const cells = $(row).find('td');
         if (cells.length >= 2) {
           const date = cells.eq(0).text().trim();
           const headline = cells.eq(1).text().trim();
+
+          // Only process advisories from the last 7 days
+          const parsedDate = new Date(date);
+          if (!isNaN(parsedDate) && parsedDate < sevenDaysAgo) return;
 
           if (headline && /disruption|outage|interrupt|water supply|burst|leak/i.test(headline)) {
             notices.push({ title: headline, body: `${headline}. Date: ${date}. Source: WASA Media Release.` });

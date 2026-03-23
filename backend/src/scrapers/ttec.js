@@ -49,31 +49,35 @@ async function scrapeTTEC() {
     const $ = cheerio.load(html);
 
     const outages = [];
-    let currentDate = '';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    // The page is an HTML table with date header rows and outage detail rows
+    // Table has 4 columns: Date (DD/MM/YYYY), Distribution Area, Location, Time
     $('tr').each((_, row) => {
       const cells = $(row).find('td');
-      const text = $(row).text().trim();
+      if (cells.length < 4) return;
 
-      // Date header rows contain a date string (bold, spans full width)
-      if (cells.length <= 2 && text.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i)) {
-        currentDate = text;
-        return;
+      const dateStr = cells.eq(0).text().trim();
+      const area = cells.eq(1).text().trim();
+      const location = cells.eq(2).text().trim();
+      const time = cells.eq(3).text().trim();
+
+      // Skip header rows
+      if (/^date$/i.test(dateStr) || /^location$/i.test(location)) return;
+      // Skip cancelled entries
+      if (/cancelled/i.test($(row).text())) return;
+
+      // Parse DD/MM/YYYY and skip past dates
+      const dateParts = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      if (dateParts) {
+        const outageDate = new Date(dateParts[3], dateParts[2] - 1, dateParts[1]);
+        if (outageDate < today) return;
       }
 
-      // Outage detail rows: Area, Location, Time (3+ columns)
-      if (cells.length >= 3) {
-        const area = cells.eq(cells.length - 3).text().trim();
-        const location = cells.eq(cells.length - 2).text().trim();
-        const time = cells.eq(cells.length - 1).text().trim();
-
-        // Skip cancelled entries and header rows
-        if (location && time && !/cancelled/i.test(text) && !/location/i.test(location)) {
-          const title = `Scheduled Outage — ${area || 'Trinidad & Tobago'}`;
-          const body = `Power will be interrupted in ${location}. Time: ${time}${currentDate ? `. Date: ${currentDate}` : ''}`;
-          outages.push({ title, body, location, area });
-        }
+      if (location && time) {
+        const title = `Scheduled Outage — ${area || 'Trinidad & Tobago'}`;
+        const body = `Power will be interrupted in ${location}. Time: ${time}. Date: ${dateStr}`;
+        outages.push({ title, body, location, area });
       }
     });
 

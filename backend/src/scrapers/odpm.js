@@ -20,10 +20,20 @@ async function scrapeODPM() {
 
     const alerts = [];
 
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
     // WordPress site — look for post entries, articles, alert banners
     $('article, .et_pb_post, .post, .entry, .alert-banner, .advisory').each((_, el) => {
       const title = $(el).find('h1, h2, h3, h4, .entry-title, .post-title').first().text().trim();
       const body = $(el).find('p, .entry-content, .post-content, .excerpt').first().text().trim();
+
+      // Check post date if available (WordPress uses <time> or .post-meta)
+      const dateStr = $(el).find('time, .post-date, .entry-date, .published').attr('datetime')
+        || $(el).find('time, .post-date, .entry-date, .post-meta .date').first().text().trim();
+      if (dateStr) {
+        const postDate = new Date(dateStr);
+        if (!isNaN(postDate) && postDate < sevenDaysAgo) return;
+      }
 
       if (title && title.length > 10 && isRelevantAlert(title + ' ' + body)) {
         alerts.push({ title, body });
